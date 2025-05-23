@@ -31,31 +31,35 @@ export function useReceivableActions() {
           title: "Status atualizado",
           description: "A conta foi marcada como recebida."
         });
-      } else {
-        // Atualiza a conta para recebida PRIMEIRO
-        const receivedDate = new Date();
-        await updateReceivableAccount(receivable.id, {
-          isReceived: true,
-          receivedDate
-        });
-        
-        // Cria um lançamento correspondente a este recebimento APENAS se não existir
-        await addTransaction({
-          type: 'receita',
-          clientSupplierId: receivable.clientId,
-          categoryId: receivable.categoryId,
-          value: receivable.value, // Use the original value directly
-          paymentDate: receivedDate,
-          observations: receivable.observations,
-          sourceType: 'receivable',
-          sourceId: receivable.id
-        });
-        
-        toast({
-          title: "Recebimento registrado",
-          description: "O recebimento foi registrado e adicionado aos lançamentos."
-        });
+        return; // Return early to prevent duplicate transaction creation
       }
+
+      // Update the receivable to mark it as received FIRST
+      const receivedDate = new Date();
+      await updateReceivableAccount(receivable.id, {
+        isReceived: true,
+        receivedDate
+      });
+      
+      // Create a corresponding transaction for this receipt ONLY if one doesn't exist
+      // Use Math.round to ensure exact decimal precision
+      const transactionValue = receivable.value;
+      
+      await addTransaction({
+        type: 'receita',
+        clientSupplierId: receivable.clientId,
+        categoryId: receivable.categoryId,
+        value: transactionValue, // Ensure we're using the exact value without rounding issues
+        paymentDate: receivedDate,
+        observations: receivable.observations,
+        sourceType: 'receivable',
+        sourceId: receivable.id
+      });
+      
+      toast({
+        title: "Recebimento registrado",
+        description: "O recebimento foi registrado e adicionado aos lançamentos."
+      });
     } catch (error) {
       console.error('Erro ao registrar recebimento:', error);
       toast({
@@ -68,13 +72,13 @@ export function useReceivableActions() {
 
   const handleMarkAsNotReceived = async (receivable: ReceivableAccount) => {
     try {
-      // Marca a conta como não recebida
+      // Mark the account as not received
       await updateReceivableAccount(receivable.id, {
         isReceived: false,
         receivedDate: undefined
       });
       
-      // Encontra e remove o lançamento correspondente
+      // Find and remove the corresponding transaction
       const relatedTransaction = transactions.find(
         t => t.sourceType === 'receivable' && t.sourceId === receivable.id
       );
