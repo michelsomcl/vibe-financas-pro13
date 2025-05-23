@@ -326,20 +326,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         
         setReceivableAccounts(prev => [newReceivable, ...prev]);
         
-        // Se for recebido, criar transação automaticamente
-        if (newReceivable.isReceived) {
-          await addTransaction({
-            type: 'receita',
-            clientSupplierId: newReceivable.clientId,
-            categoryId: newReceivable.categoryId,
-            value: newReceivable.value,
-            paymentDate: newReceivable.receivedDate!,
-            observations: newReceivable.observations,
-            sourceType: 'receivable',
-            sourceId: newReceivable.id
-          });
-        }
-        
         toast({
           title: "Sucesso",
           description: "Conta a receber criada com sucesso"
@@ -378,22 +364,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         .eq('id', id);
 
       if (error) throw error;
-
-      // Verificar se foi marcado como recebido
-      const receivable = receivableAccounts.find(r => r.id === id);
-      if (receivable && !receivable.isReceived && updates.isReceived) {
-        // Criar transação automaticamente
-        await addTransaction({
-          type: 'receita',
-          clientSupplierId: updates.clientId || receivable.clientId,
-          categoryId: updates.categoryId || receivable.categoryId,
-          value: updates.value || receivable.value,
-          paymentDate: updates.receivedDate || new Date(),
-          observations: updates.observations || receivable.observations,
-          sourceType: 'receivable',
-          sourceId: id
-        });
-      }
 
       setReceivableAccounts(prev => 
         prev.map(item => 
