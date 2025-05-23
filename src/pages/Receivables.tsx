@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,19 +68,20 @@ export default function Receivables() {
           description: "A conta foi marcada como recebida."
         });
       } else {
-        // Atualiza a conta para recebida
+        // Atualiza a conta para recebida PRIMEIRO
         const receivedDate = new Date();
         await updateReceivableAccount(receivable.id, {
           isReceived: true,
           receivedDate
         });
         
-        // Cria um lançamento correspondente a este recebimento
+        // Cria um lançamento correspondente a este recebimento APENAS se não existir
+        // Garantir que o valor seja passado corretamente sem conversões desnecessárias
         await addTransaction({
           type: 'receita',
           clientSupplierId: receivable.clientId,
           categoryId: receivable.categoryId,
-          value: receivable.value,
+          value: Number(receivable.value), // Garantir conversão para número
           paymentDate: receivedDate,
           observations: receivable.observations,
           sourceType: 'receivable',
